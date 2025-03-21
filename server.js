@@ -6,6 +6,22 @@ require('dotenv').config();
 const app = express();
 app.use(bodyParser.json());
 
+const API_TOKEN = process.env.API_TOKEN;
+
+// Middleware to verify API token
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) return res.status(401).json({ error: 'Access token required' });
+  
+  if (token !== API_TOKEN) {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
+  
+  next();
+};
+
 
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.gmail.com',
@@ -16,7 +32,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-app.post('/send-email', async (req, res) => {
+app.post('/send-email', authenticateToken, async (req, res) => {
   console.log('Received email request:', {
     from: req.body.from,
     to: req.body.to,
